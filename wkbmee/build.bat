@@ -1,0 +1,1 @@
+@cl /Fa /O2 /MD wkbmee.c psapi.lib user32.lib wkbmee.res

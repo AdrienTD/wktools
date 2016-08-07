@@ -1,0 +1,1 @@
+@cl /Feobj2wkm.exe /O2 *.cpp

@@ -1,0 +1,130 @@
+NOTES ON THE LZRW3 ALGORITHM
+============================
+Author : Ross Williams.
+Date   : 30-Jun-1991.
+
+Abstract
+--------
+This file announces the release of my LZRW3 algorithm which was
+invented on 31-Dec-1990. The LZRW3 algorithm is a descendant of the
+LZRW1-A and LZRW2 algorithms. LZRW3 runs a little more slowly than
+LZRW1-A and LZRW2, but yields better compression. LZRW3 is a
+deterministic algorithm. LZRW3 is not patented and is of the LZ77
+class and so is unlikely to be subject to a patent challenge. The
+exact figures for the Calgary corpus on C implementations on my
+Macintosh-SE are (percentage remaining, compression speed,
+decompression speed, memory required during compression and
+decompression):
+
+           PerRem    ComK/S    DecK/S     ComMem    DecMem
+LZRW1-A     55.1 %   17 K/s     69 K/s      16 K       0 K
+LZRW2       51.5 %   18 K/s     54 K/s      24 K      16 K
+LZRW3       50.0 %   20 K/s     33 K/s      16 K      16 K
+
+LZRW3 has been written and released mainly to demonstrate the idea of
+transmitting hash table indexes directly and to round off the triple
+of algorithms I developed in 1989/1990. LZRW3 may also be useful to
+those who are unhappy with LZRW1-A's and LZRW2's compression
+performance.
+
+Users should know that about 3% to 5% absolute extra compression is
+possible in all three algorithms by using a deeper hash table (e.g.
+2x2048 rather than 1x4096). This comes at about a 40% speed decrease
+in the compressor (and a small decrease in speed in the LZRW3
+decompressor). Extra compression could also be obtained by reducing
+the size of the phrase table in LZRW2 and the hash table in LZRW3 thus
+reducing the offset field width in the code. I have avoided this
+option as it would mean that the compressed items would no longer be
+byte-aligned which I have perceived would severely affect speed
+(although I am not so sure having heard of some of the high speed IBM
+PC compressors with variable-length backend coders).
+
+Availability
+------------
+The only implementation available is in C. It can be found in the
+following archive within a couple of days of 30-Jun-1991:
+
+   FTP Archive Access:
+   Machine   : sirius.itd.adelaide.edu.au   [IP=129.127.40.3]
+   Directory : ~pub/compression
+   Files     : lzrw3.txt   - This file.
+               lzrw3.c     - An implementation in C.
+
+Motivation for LZRW3
+--------------------
+To best understand LZRW3, you should have an understanding of LZRW1-A
+and LZRW2.
+
+After designing LZRW2, I noted that a phrase table entry would never
+be used unless there was a corresponding hash table entry. I realized
+that I could bypass the phrase table altogether and send the hash
+table indices directly, at the cost of the decompressor maintaining a
+hash table too.
+
+The benefit of eliminating the phrase table is that phrases are no
+longer automatically forgotten when they become 4097 phrases old. In
+LZRW1-A, a phrase is forgotten if a new phrase with the same hash
+arrives OR if the phrase grows more than 4096 bytes old. In LZRW2, a
+phrase is forgotten if a new phrase with the same hash arrives OR if
+it grows 4096 phrases old. In LZRW3, a phrase is forgotten ONLY when a
+new phrase with the same hash arrives. In LZRW3, rarely used hash
+table entries can laze about until their big day comes around again.
+LZRW3 gives compression identical to an imaginary supernatural version
+of LZRW1-A in which an infinite range of offsets can be fitted into
+LZRW1-A's twelve bit offset field.
+
+Updating the hash table in LZRW3 is a little messy. Consider the case
+of an LZRW3 decompressor that has just received a copy item. Updating
+the hash table is easy in this case as the compressor has just
+transmitted the index of the hash table entry to be updated! No
+hashing involved! The literal case, however, is much nastier as upon
+receipt of a literal item, the decompressor is unable to immediately
+update the hash table as it does not have three bytes to hash!
+
+There are a few solutions to the problem, one easy solution being
+simply to make literals three bytes long! The solution adopted in
+LZRW3 is to defer the updating of the hash table for each phrase until
+the first three bytes of the phrase become available. Both the
+compressor and the decompressor perform this buffering in order to
+remain synchronized.
+
+For more details, see the code itself.
+
+Benchmark
+---------
+Here are the results of applying LZRW3.C compiled under THINK C 4.0
+and running on a Mac-SE (8MHz 68000) to the standard Calgary corpus.
+
+   +----------------------------------------------------------------+
+   | DATA COMPRESSION TEST                                          |
+   | =====================                                          |
+   | Time of run     : Sun 30-Jun-1991 09:31PM                      |
+   | Timing accuracy : One part in 100                              |
+   | Context length  : 262144 bytes (= 256.0000K)                   |
+   | Test suite      : Calgary Corpus Suite                         |
+   | Files in suite  : 14                                           |
+   | Algorithm       : LZRW3                                        |
+   | Note: All averages are calculated from the un-rounded values.  |
+   +----------------------------------------------------------------+
+   | File Name   Length  CxB  ComLen  %Remn  Bits  Com K/s  Dec K/s |
+   | ----------  ------  ---  ------  -----  ----  -------  ------- |
+   | rpus:Bib.D  111261    1   55033   49.5  3.96    19.46    32.27 |
+   | us:Book1.D  768771    3  467962   60.9  4.87    17.03    31.07 |
+   | us:Book2.D  610856    3  317102   51.9  4.15    19.39    34.15 |
+   | rpus:Geo.D  102400    1   82424   80.5  6.44    11.65    18.18 |
+   | pus:News.D  377109    2  205670   54.5  4.36    17.14    27.47 |
+   | pus:Obj1.D   21504    1   13027   60.6  4.85    13.40    18.95 |
+   | pus:Obj2.D  246814    1  116286   47.1  3.77    19.31    30.10 |
+   | s:Paper1.D   53161    1   27522   51.8  4.14    18.60    31.15 |
+   | s:Paper2.D   82199    1   45160   54.9  4.40    18.45    32.84 |
+   | rpus:Pic.D  513216    2  122388   23.8  1.91    35.29    51.05 |
+   | us:Progc.D   39611    1   19669   49.7  3.97    18.87    30.64 |
+   | us:Progl.D   71646    1   28247   39.4  3.15    24.34    40.66 |
+   | us:Progp.D   49379    1   19377   39.2  3.14    23.91    39.23 |
+   | us:Trans.D   93695    1   33481   35.7  2.86    25.48    40.37 |
+   +----------------------------------------------------------------+
+   | Average     224401    1  110953   50.0  4.00    20.17    32.72 |
+   +----------------------------------------------------------------+
+
+--<End of Release Notes for LZRW3>--
+

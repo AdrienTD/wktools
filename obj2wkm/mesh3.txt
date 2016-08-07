@@ -1,0 +1,99 @@
+Mesh3 (WK/WKB) file format
+AdrienTD
+
+Thanks to "Warrior Kings Game Set\Last Resort\LAST_RESORT.MESH"
+and "Warrior Kings Game Set\Missiles\Trebuchet Ball\BALL.MESH"! :D
+
+NAME		TYPE		MEANING
+----------------------------------------------------------------------------
+sign		int		Signature ("Mesh")
+version		int		Version (3 or 4)
+unk1		int		Flags (?) (1 in most times)
+
+--- Attachment points ---
+nparts		short		Number of points
+[
+    tag		string		Tag
+    offset	float[3]	Position of attachment point
+    orientation	float[4]	Orientation " " "
+    on		char		1=On, 0=Off
+    attach	string		Path to a file to attach.
+]
+
+--- Positions ---
+nverts		short		Number of positions
+[
+    pos		float[3]	Position
+]
+
+--- Sphere ---
+sphere		float[4]	A sphere.
+
+--- Remapper ---
+(Note: only exists if version <= 3, doesn't exist when version == 4)
+nremaps		ushort		Number of elements.
+[
+    index	ushort		...
+]
+
+--- Normals ---
+nnorm		ushort		Number of normals
+nele		uint		Number of elements
+
+- Either this -
+*nele times
+[
+    sm		ushort		Element
+]
+- or this -
+*nnorm times
+[
+   nv		ushort		Number of positions used to calculate the normal
+   v		ushort[nv]	Index to position list
+]
+- -
+
+--- Materials ---
+nmat		ushort		Number of materials
+[
+    flag	char		1 = alpha test enabled, 0 = no alpha test
+    file	string		Texture file name (in "Warrior Kings Game Set\Textures")
+]
+
+--- Texture coordinates ---
+nuvlist		uint		Number of UV lists.
+[
+    ntexc	short		Number of texture coordinates
+    [
+        tc	float[2]	Texture coordinate
+    ]
+]
+
+--- Groups ---
+ngrp		uint		Number of groups
+[
+    sg		ushort
+    [
+        p	ushort		Index in position list
+        n	ushort		Index in normal list
+        t	ushort		Index of texture coordinate
+    ]
+]
+
+--- Polygon lists ---
+ntrilist	uint		Number of polygon lists
+
+- For every polygon list -
+polylist	ushort[3]	Polygon_List (can be ignored)
+Sample_Distance	float		The distance at which the polygon list is used (can be ignored)
+
+*nmat times
+[
+    sgrp	ushort		Size of part mapped to material
+    vused	ushort		Number of vertices used
+    matx	ushort		Material index (can be ignored)
+    *sgrp times
+    [
+        tri	ushort[3]	Indices to vertices in corresponding group
+    ]
+]
