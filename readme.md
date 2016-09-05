@@ -14,8 +14,10 @@ These tools are licensed under the GNU GPL 3 license:
 * wkbmee
 * wkm2obj
 
-This tool is licensed under the MIT license:
+These tools are licensed under the MIT license:
 * wkm3v
+* md2_to_wka
+* md2_to_wkm
 
 Please take a look at README and LICENSE files for more information.
 

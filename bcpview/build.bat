@@ -1,1 +1,1 @@
-@cl %1 %2 %3 %4 %5 %6 %7 %8 %9 *.c user32.lib comctl32.lib comdlg32.lib bcpview.res /O2 /MD
+@cl %1 %2 %3 %4 %5 %6 %7 %8 %9 *.c user32.lib comctl32.lib comdlg32.lib bzip2\libbz2.lib bcpview.res /O2 /MD

@@ -19,7 +19,14 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 
-char *title = "WK MESH3 Viewer", *clsname = "AG_wkm3vWinClass";
+struct Anim3PosCoord
+{
+	uint nframes;
+	uint *ft;
+	float **verts;
+};
+
+char *title = "WK MESH3/ANIM3 Viewer", *clsname = "AG_wkm3vWinClass";
 char texdir[512] = "Textures\\\0";
 IDirect3D9 *d3d9 = NULL; IDirect3DDevice9 *ddev = NULL;
 D3DPRESENT_PARAMETERS dpp = {0, 0, D3DFMT_UNKNOWN, 0, D3DMULTISAMPLE_NONE, 0, D3DSWAPEFFECT_DISCARD, 0, 
@@ -51,19 +58,24 @@ uint readint(FILE *file) {uint a; fread(&a, 4, 1, file); return a;}		// 4 bytes
 float readfloat(FILE *file) {float a; fread(&a, 4, 1, file); return a;}		// 4 bytes
 void ignorestr(FILE *file) {while(fgetc(file));}
 
+uint *remapper, nremap;
 float *lstverts;
 int *lstmatflags;
 IDirect3DTexture9 **lstmattex;
 float **lstuvlist;
 GrowList<GrowList<int>*> lstgroup;
 
-GrowList<float> mverts;
+GrowList<float> mverts; GrowList<uint> iverts;
 GrowList<GrowList<float>*> muvlist;
 uint *mgrpindex;
 GrowList<ushort> mindices;
 uint *mstartix;
-
 int ngrp;
+
+uint noanim;
+uint animdur;
+Anim3PosCoord animcoord[3];
+uint timestart, curtime, animpause = 0;
 
 //#define dbg(a) MessageBox(hWnd, (a), title, 64)
 #define dbg(a) 
@@ -74,17 +86,8 @@ void LoadMesh3(char *fn)
 	file = fopen(fn, "rb");
 	if(!file) fErr("Cannot open file.", -4);
 	form = readint(file);
-	if(form == 'minA')			// If file format is .anim3
-	{
-		// In case of a .anim3 file look for the corresponding
-		// .mesh3 file and load this file instead.
-		fseek(file, 8, SEEK_SET);
-		char amf[512]; char *a = amf;
-		while(*(a++) = fgetc(file));
-		LoadMesh3(amf); return;
-	} else if(form != 'hseM')		// If file format in not mesh3 nor anim3
+	if(form != 'hseM')		// If file format in not mesh3
 		fErr("Unknown format.", -5);
-	fseek(file, 4, SEEK_SET);
 	ver = readint(file);
 
 	// Attachment Points
@@ -111,12 +114,20 @@ void LoadMesh3(char *fn)
 
 	// Remapper
 	// Only exists if version is 3 (WKO), version 4 (WKBattles) removed it.
-	// Even if it exists in WKO, it is in most cases useless.
-	// Here we simply ignore it.
 	if(ver < 4)
 	{
-		i = (ushort)readshort(file);
-		fseek(file, 2 * i, SEEK_CUR);
+		nremap = (ushort)readshort(file);
+		remapper = new uint[nremap];
+		for(int i = 0; i < nremap; i++)
+			remapper[(ushort)readshort(file)] = i;
+			//remapper[i] = (ushort)readshort(file);
+	}
+	else
+	{
+		nremap = nverts;
+		remapper = new uint[nremap];
+		for(int i = 0; i < nremap; i++)
+			remapper[i] = i;
 	}
 
 	// Normals
@@ -179,6 +190,7 @@ void LoadMesh3(char *fn)
 		for(int j = 0; j < sg; j++)
 		{
 			int v = readshort(file);
+			iverts.add(v);
 			for(int k = 0; k < 3; k++)
 				mverts.add(lstverts[v*3+k]);
 			readshort(file); // Index to normal list
@@ -226,6 +238,82 @@ void LoadMesh3(char *fn)
 	fclose(file);
 }
 
+void LoadAnim3(char *fn)
+{
+	FILE *file; int i, ver, nparts, nverts, form;
+	file = fopen(fn, "rb");
+	if(!file) fErr("Cannot open file.", -4);
+	form = readint(file);
+	if(form == 'hseM')		// If file format is .mesh3
+	{
+		fclose(file);
+		LoadMesh3(fn);
+		noanim = 1;
+		return;
+	} else if(form != 'minA')	// If file format in not mesh3 nor anim3
+		ferr("Input file is neither an Anim3 file nor a Mesh3 file.");
+
+	noanim = 0;
+	readint(file);
+	char mshname[512]; i = 0;
+	while(mshname[i++] = readchar(file));
+	LoadMesh3(mshname);
+	animdur = readint(file);
+	fseek(file, 16, SEEK_CUR);
+	nverts = readint(file);
+
+	for(i = 0; i < 3; i++)
+	{
+		animcoord[i].nframes = readint(file);
+		animcoord[i].ft = new uint[animcoord[i].nframes];
+		animcoord[i].verts = new float*[animcoord[i].nframes];
+		for(int j = 0; j < animcoord[i].nframes; j++)
+			animcoord[i].ft[j] = readint(file);
+		for(int j = 0; j < animcoord[i].nframes; j++)
+		{
+			float *v = animcoord[i].verts[j] = new float[nverts];
+			float ftrans = readfloat(file);
+			float fscale = readfloat(file);
+			for(int k = 0; k < nverts / 3; k++)
+			{
+				uint w = readint(file);
+				for(int l = 0; l < 3; l++)
+					*(v++) = (((w>>(l*11))&1023)/1023.0f) * fscale + ftrans;
+			}
+			if(nverts % 3)
+			{
+				uint w = readint(file);
+				for(int l = 0; l < (nverts%3); l++)
+					*(v++) = (((w>>(l*11))&1023)/1023.0f) * fscale + ftrans;
+			}
+		}
+	}
+
+	fclose(file);
+}
+
+void CreateVertsFromTime(float *out, int tm)
+{
+	if(!animdur) ferr("animdur == 0");
+	tm = tm % animdur;
+	for(int c = 0; c < 3; c++)
+	{
+		int f;
+		Anim3PosCoord *ac = &(animcoord[c]);
+		for(f = 1; f < ac->nframes; f++)
+			if(ac->ft[f] > tm)
+				break;
+		int fstart = f-1, fend = f;
+		float ipol = (float)(tm-ac->ft[fstart]) / (float)(ac->ft[fend]-ac->ft[fstart]);
+		for(int i = 0; i < iverts.len; i++)
+		{
+			float v1 = (ac->verts[fstart])[remapper[iverts[i]]];
+			float v2 = (ac->verts[fend])[remapper[iverts[i]]];
+			out[3*i+c] = v1 + (v2-v1) * ipol;
+		}
+	}
+}
+
 IDirect3DVertexBuffer9 *dvbverts;
 GrowList<IDirect3DVertexBuffer9*> dvbtexc;
 IDirect3DIndexBuffer9 *dixbuf;
@@ -245,7 +333,7 @@ void InitDraw()
 	ddev->CreateVertexDeclaration(ddve, &ddvd);
 	ddev->SetVertexDeclaration(ddvd);
 
-	ddev->CreateVertexBuffer(mverts.len*4, 0, 0, D3DPOOL_DEFAULT, &dvbverts, 0);
+	ddev->CreateVertexBuffer(mverts.len*4, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &dvbverts, 0);
 	ddev->CreateIndexBuffer(mindices.len*2, 0, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &dixbuf, 0);
 
 	void *buf;
@@ -265,6 +353,8 @@ void InitDraw()
 		ul->Unlock();
 		dvbtexc.add(ul);
 	}
+
+	timestart = timeGetTime();
 }
 
 void SetMatrices()
@@ -298,6 +388,15 @@ void Render()
 	ddev->BeginScene();
 
 	SetMatrices();
+
+	if(!noanim)
+	{
+		float *dat;
+		dvbverts->Lock(0, 0, (void**)&dat, D3DLOCK_DISCARD);
+		if(!animpause) curtime = timeGetTime();
+		CreateVertsFromTime(dat, curtime - timestart);
+		dvbverts->Unlock();
+	}
 
 	ddev->SetStreamSource(0, dvbverts, 0, 12);
 	ddev->SetStreamSource(1, dvbtexc[iwtcolor], 0, 8);
@@ -335,6 +434,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					ytranslation -= 0.5f; break;
 				case ' ':
 					spin = !spin; break;
+				case 'p':
+					animpause = !animpause;
 			}
 			break;
 		case WM_DESTROY:
@@ -399,14 +500,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *cmdArgs, 
 			char *ad = ++s;
 			while(*s != '\"' && *s != 0) s++;
 			*s = 0;
-			LoadMesh3(ad); fao = 1;
+			LoadAnim3(ad); fao = 1;
 		}
-		else	LoadMesh3(s); fao = 1;
+		else	LoadAnim3(s); fao = 1;
 	}
 
 	if(!fao) //LoadMesh3("ABADDON_MOVE.MESH3");
 	{
-		MessageBox(hWnd, "You must specify a Mesh3/Anim3 file path as a command-line argument. You can also drag & drop the file in the executable file. Look at the accompanying \"readme.txt\" for more details.\n\nwkm3v Version 0.1\n(C) 2016 AdrienTD", title, 48);
+		MessageBox(hWnd, "You must specify a Mesh3/Anim3 file path as a command-line argument. You can also drag & drop the file in the executable file. Look at the accompanying \"readme.txt\" for more details.\n\nwkm3v Version 0.2\n(C) 2016 AdrienTD", title, 48);
 		exit(-47);
 	}
 	InitDraw();

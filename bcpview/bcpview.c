@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#define VERSION "0.1.0.0"
+#define VERSION "1.0.0.0"
 #include <Windows.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include "resource.h"
 #include "lzrw_headers.h"
+#include "bzip2/bzlib.h"
 
-#define MAX_DIR_LEV 16
+#define MAX_DIR_LEV 32
 typedef unsigned int uint;
 typedef struct
 {
@@ -49,7 +50,7 @@ FILE *file = 0;
 wchar_t wbuf[256]; char abuf[256];
 uint fentof;
 uint nfiles = 0;
-fileentry *fent;
+fileentry *fent; FILETIME *fetime;
 int dirstack[MAX_DIR_LEV]; HTREEITEM htistack[MAX_DIR_LEV];
 int dirlev = 0; int *dirsp = dirstack; HTREEITEM *htisp = htistack;
 TVINSERTSTRUCT idti;
@@ -82,7 +83,7 @@ void bufwtoa()
 	int i;
 	for(i = 0; i < 255; i++)
 	{
-		abuf[i] = wbuf[i];
+		abuf[i] = (wbuf[i] < 256) ? wbuf[i] : ((wbuf[i]%27)+64);
 		if(!wbuf[i]) return;
 	}
 }
@@ -90,7 +91,7 @@ void bufwtoa()
 void CloseBCP()
 {
 	if(!file) return;
-	free(fent);
+	free(fent); free(fetime);
 	fclose(file); file = 0; nfiles = 0;
 	TreeView_DeleteAllItems(htree);
 }
@@ -125,23 +126,27 @@ int LoadBCP(char *fn)
 	fent = (fileentry*)malloc(nfiles*20);
 	if(!fent) fErr(-2, "Failed to allocate memory for the file position/size table.");
 	fread(fent, nfiles*20, 1, file);
+	fetime = (FILETIME*)malloc(nfiles*sizeof(FILETIME));
+	if(!fetime) fErr(-2092016, "Failed to allocate fetime.");
 
 	fseek(file, fentof+4+nfiles*20, SEEK_SET);
+	dirsp = dirstack; htisp = htistack;
 	*dirsp = 1000; *htisp = TVI_ROOT;
 	while(!feof(file))
 	{
-		if(root) {/*printf("ROOT\n");*/ root = 0;}
+		// Directories
+		if(root) {root = 0;}
 		else
 		{
-			//printf("DIRECTORY\n");
-			/*printnum(*/ i = _getw(file); //);
+			i = _getw(file);
 			if(i)
 			{
 				// Next level
 				dirsp++; // Push
 				htisp++;
-				*dirsp = i+1;				
 				dirlev++;
+				if(dirlev >= MAX_DIR_LEV) fErr(-209161825, "Maximum directory level reached.");
+				*dirsp = i+1;
 			}
 			while(!(--(*dirsp)))
 			{
@@ -158,9 +163,6 @@ int LoadBCP(char *fn)
 			idti.item.lParam = -1;
 			idti.item.iImage = idti.item.iSelectedImage = 0;
 			*htisp = TreeView_InsertItem(htree, &idti);
-
-			//printdirlev();
-			//printf(" (%i)\n", i);
 		}
 		numfiles = _getw(file);
 
@@ -168,30 +170,28 @@ int LoadBCP(char *fn)
 		for(f = 0; f < numfiles; f++)
 		{
 			if(feof(file)) goto flend;
-			id = _getw(file); // printnum
-			_getw(file); // printnum
-			_getw(file); // printnum
-			//fputc(' ', stdout);
-			//printdirlev();
+			id = _getw(file);
+			fetime[id].dwLowDateTime = _getw(file);
+			fetime[id].dwHighDateTime = _getw(file);
 			if(ver == 2) {cfstr(); bufwtoa();}
 			else afstr();
+
 			idti.hParent = *htisp;
 			idti.item.cchTextMax = strlen(abuf);
 			idti.item.lParam = id;
 			idti.item.iImage = idti.item.iSelectedImage = fent[id].form + 1;
 			TreeView_InsertItem(htree, &idti);
-			//fputc('\n', stdout);
-			//printf("\nOffset: 0x%08X\nSize:   %i\nFormat: %i\n\n", fent[id].offset, fent[id].size, fent[id].form);
 		}
 	}
-flend:	//fclose(file);
-	return 0;
+flend:	return 0;
 }
+
+#define MEM_REQ ((4096*sizeof(char*))+16)
 
 void ExtractFile(int id, char *fs)
 {
 	FILE *out; uint i, s; char fn[256] = "bcpxtract\\\0";
-	char *min, *mout, *ws; uint os, sws;
+	char *min, *mout, *ws; uint os, sws; int be; BZFILE *bz;
 	if(!file) return;
 	strcat_s(fn, 255, fs);
 	out = fopen(fn, "wb");
@@ -200,15 +200,24 @@ void ExtractFile(int id, char *fs)
 	s = fent[id].endos - fent[id].offset;
 	switch(fent[id].form)
 	{
-		case 3: // Patch file (?)
 		case 1: // Uncompressed
 			for(i = 0; i < s; i++)
 				fputc(fgetc(file), out);
 			break;
 		case 2: // Zero-sized file
 			break;
+		case 3: // bzip2-compressed file
+			mout = malloc(fent[id].size);
+			bz = BZ2_bzReadOpen(&be, file, 0, 0, NULL, 0);
+			if(be != BZ_OK) fErr(-822, "Failed to initialize bzip2 decompression.");
+			BZ2_bzRead(&be, bz, mout, fent[id].size);
+			if((be != BZ_OK) && (be != BZ_STREAM_END)) fErr(-872, "Failed to decompress bzip2 file.");
+			BZ2_bzReadClose(&be, bz);
+			fwrite(mout, fent[id].size, 1, out);
+			free(mout);
+			break;
 		case 4: // LZRW3-compressed file
-			ws = (char*)malloc(16400);
+			ws = (char*)malloc(MEM_REQ);
 			min = (char*)malloc(s);
 			mout = (char*)malloc(os = fent[id].size);
 			fread(min, s, 1, file);
@@ -275,7 +284,7 @@ void EnsureDirectoriesArePresent(char *s)
 		_chdir(p);
 		*n = '\\';
 		p = n + 1;
-		if(++i >= 16) fErr(-2332, "EnsureDirectoriesArePresent is buggy.");
+		if(++i >= MAX_DIR_LEV) fErr(-2332, "EnsureDirectoriesArePresent is buggy.");
 	}
 	_chdir(pd);
 }
@@ -292,7 +301,7 @@ void ExtractAll()
 	{
 		TreeView_GetItem(htree, &t);
 		s = GetItemPath(t.hItem);
-		if(!s) {MessageBox(hwnd, "Error in extracting all files.", title, 16); break;}
+		if(!s) {MessageBox(hwnd, "GetItemPath pathbuf overflow!", title, 16); break;}
 		if(t.lParam != -1)
 		{
 			EnsureDirectoriesArePresent(s);
@@ -318,7 +327,7 @@ gns:			hn = TreeView_GetParent(htree, hn);
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	TVINSERTSTRUCT tins; HTREEITEM hti; RECT rect; int i; char *s;
+	TVINSERTSTRUCT tins; HTREEITEM hti; RECT rect; int i; char *s, *s2; SYSTEMTIME t;
 	switch(uMsg)
 	{
 		case WM_CREATE:
@@ -349,7 +358,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					break;
 				case IDM_ABOUT:
-					MessageBox(hWnd, "BCP Viewer\nVersion: " VERSION "\nBy AdrienTD", title, 64); break;
+					MessageBox(hWnd, "BCP Viewer\nVersion: " VERSION "\n(C) 2015-2016 AdrienTD\nLicensed under the GNU GPL3 license.", title, 64); break;
 				case IDM_QUIT:
 					DestroyWindow(hWnd); break;
 			} break;
@@ -365,7 +374,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						fti.pszText = cfname; fti.cchTextMax = 255;
 						TreeView_GetItem(htree, &fti);
 						if(fti.lParam == -1) break;
-						//MessageBox(hwnd, fti.pszText, title, 64);
 						ExtractFile(fti.lParam, fti.pszText);
 						MessageBox(hWnd, "File extracted!", title, 64);
 					}
@@ -375,9 +383,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					{
 						i = ((LPNMTREEVIEW)lParam)->itemNew.lParam;
 						if(i == -1) {SetWindowText(hstatus, "Directory"); break;}
-						_snprintf(ubuf, 256, "Offset: 0x%08X, Archived size: %u, Uncompressed size: %u, Format: %u", fent[i].offset, fent[i].endos - fent[i].offset, fent[i].size, fent[i].form);
-						i = (i + '0') & 0xFFFFFF;
+						FileTimeToSystemTime(&(fetime[i]), &t);
+						s = malloc(256); s2 = malloc(256); s[255] = s2[255] = 0;
+						GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &t, NULL, s, 255);
+						GetTimeFormat(LOCALE_USER_DEFAULT, 0, &t, NULL, s2, 255);
+						_snprintf(ubuf, 256, "Offset: 0x%08X, Archived size: %u, Uncompressed size: %u, Format: %u, Date: %s, Time: %s", fent[i].offset, fent[i].endos - fent[i].offset, fent[i].size, fent[i].form, s, s2);
 						SetWindowText(hstatus, ubuf);
+						free(s); free(s2);
 					}
 					break;
 				case NM_RCLICK:
