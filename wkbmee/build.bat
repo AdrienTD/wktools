@@ -1,1 +1,1 @@
-@cl /Fa /O2 /MD wkbmee.c psapi.lib user32.lib wkbmee.res
+@cl /O2 wkbmee.c psapi.lib user32.lib wkbmee.res

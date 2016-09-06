@@ -136,7 +136,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int showMod
 	int i; char *a = 0x00000000; int pgs, bw; char *fp;
 	MEMORY_BASIC_INFORMATION mbi;
 
-	MessageBox(0, "Welcome!\nThis trainer will enable the Map Editor button in the main menu.\nBe sure that WKB is running, then click OK.", appname, 64);
+	MessageBox(0, "Welcome to wkbmee v0.2!\nThis trainer will enable the Map Editor button in the main menu.\nBe sure that WKB is running, then click OK.", appname, 64);
 
 	// Search process
 	if(!EnumProcesses(pids, sizeof(pids), &pts)) ferr(-1);
@@ -151,6 +151,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int showMod
 		if(!pfile) pfile = pname;
 		else pfile++;
 		if(!_stricmp(pfile, "Warrior_Kings_Battles.exe"))
+			goto found;
+		if(!_stricmp(pfile, "Warrior Kings - Battles.exe"))
 			goto found;
 		CloseHandle(h);
 	}

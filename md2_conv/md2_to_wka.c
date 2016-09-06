@@ -50,6 +50,7 @@ md2_header *md2;
 int firstframe = 0, numframes = -1;
 float reqytrans = 0, reqscale = 1;
 int reqap = 1;
+int reqloop = 1;
 
 void ferr(char *s)
 {
@@ -64,8 +65,8 @@ void writefloat(float c) {fwrite(&c, 4, 1, fo);}
 void WriteFrameTimes()
 {
 	int i;
-	write32(numframes+1);
-	for(i = 0; i < numframes+1; i++)
+	write32(numframes+reqloop);
+	for(i = 0; i < numframes+reqloop; i++)
 		write32(MD2DUR * i);
 }
 
@@ -99,7 +100,7 @@ void WriteCoordinateFrames(int c, float t, float s)
 	WriteFrameTimes();
 	for(i = firstframe; i < firstframe+numframes; i++)
 		WritePosFrame(i, c, t, s);
-	WritePosFrame(firstframe, c, t, s);
+	if(reqloop) WritePosFrame(firstframe, c, t, s);
 }
 
 void WritePositions()
@@ -125,7 +126,7 @@ void WriteNormals()
 	write32(0/*md2->nverts*/);
 	for(i = firstframe; i < firstframe+numframes; i++)
 		WriteNormalFrame(i);
-	WriteNormalFrame(firstframe);
+	if(reqloop) WriteNormalFrame(firstframe);
 }
 
 void WriteAPState(int on)
@@ -137,12 +138,13 @@ void WriteAPState(int on)
 
 int main(int argc, char *argv[])
 {
-	int i; char *nob;
-	if(argc < 4) {printf("md2_to_wka v0.1 by Adrien Geets\nUsage: md2_to_wka input.md2 output.anim3 mesh.mesh3 (first frame number) (number of frames) (y translation number) (scale number)\n"); return -2;}
+	int i; char *nob; uint dur;
+	if(argc < 4) {printf("md2_to_wka v0.1 by Adrien Geets\nUsage: md2_to_wka input.md2 output.anim3 mesh.mesh3 (first frame number) (number of frames) (y translation number) (scale number) (loop flag 0/1)\n"); return -2;}
 	if(argc >= 5) firstframe = atoi(argv[4]);
 	if(argc >= 6) numframes = atoi(argv[5]);
 	if(argc >= 7) reqytrans = atof(argv[6]);
 	if(argc >= 8) reqscale = atof(argv[7]);
+	if(argc >= 9) reqloop = atoi(argv[8]);
 	//if(argc >= 9) reqap = atoi(argv[8]);
 
 	fi = fopen(argv[1], "rb"); if(!fi) ferr("Failed to open input file.");
@@ -156,15 +158,13 @@ int main(int argc, char *argv[])
 	if((firstframe < 0) || (firstframe >= md2->nframes)) ferr("First frame number doesn't exist.");
 	if(numframes < 0) numframes = md2->nframes - firstframe;
 
-	//nob = (char*)malloc(strlen(argv[2]) + 7);
-	//strcpy(nob, argv[2]); strcat(nob, ".anim3");
 	fo = fopen(argv[2], "wb"); if(!fo) ferr("Failed to open output file.");
 	write32('minA'); write32(3);
-	//strcpy(nob, argv[2]); strcat(nob, ".mesh3");
 	for(i = 0; i < strlen(argv[3]); i++)
 		write8((argv[3])[i]);
-	write8(0); //free(nob);
-	write32(MD2DUR * numframes);
+	write8(0);
+	dur = MD2DUR * (numframes+reqloop-1);
+	write32(dur);
 	// Sphere from supply wagon
 	writefloat(0.471943f); writefloat(2.353645f); writefloat(-1.298914f); writefloat(3.881023f);
 	write32(md2->nverts);
@@ -176,12 +176,11 @@ int main(int argc, char *argv[])
 	else {
 		write32(1);
 		write32(3); // 3 frames for ap
-		write32(0); write32(MD2DUR * numframes / 2); write32(MD2DUR * numframes);
+		write32(0); write32(dur / 2); write32(dur);
 		WriteAPState(0); WriteAPState(1); WriteAPState(0);
 	}
 
 	WriteNormals();
-	//write32(0); write32(0);
 
 	fclose(fo);
 	free(md2);

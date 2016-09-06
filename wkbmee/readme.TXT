@@ -1,4 +1,4 @@
-WKB Map Editor Enabler v0.1
+WKB Map Editor Enabler v0.2
 by AdrienTD
 
 
@@ -27,19 +27,21 @@ I haven't tested the trainer on WKB version 1.0 yet.
 Instructions
 -------------------------
 
-0) Be sure the file name of the game executable is "Warrior_Kings_Battles.exe".
+0) Be sure the file name of the game executable is "Warrior_Kings_Battles.exe"
+   or "Warrior Kings - Battles.exe".
    If it's different, rename it to the correct file name.
    I recommend you to run the game in a window. To do this, run the Registry
    Editor, find the "...\Black Cactus\Warrior Kings Battles\Renderer" key,
    add in this key a new DWORD value named "fullscreen" and set this value to
-   0.
+   0. Or if you don't know how to use the Registry Editor, take a look at the
+   "WK Registery Configs" directory in the modding kit.
 
 1) Run the "wkbmee.exe" file.
-   A dialog box appears. Do not answer.
+   A dialog box appears. Do NOT click on "OK", you must leave the message as is.
 
 2) Run the game.
 
-3) While WKB is running, go to the dialog box and click on OK.
+3) While WKB is running, go back to the message box and NOW you can click on OK.
    Tip: Click on OK while WKB is playing the introduction video or showing the
         disclaimer screen to make the Map Editor button appear immediately.
 
@@ -83,7 +85,15 @@ It doesn't work!
 
 If you don't get the map editor after following the instructions, be sure that:
 
-- the game executable's file name is "Warrior_Kings_Battles.exe".
+- the game executable's file name is "Warrior_Kings_Battles.exe" or
+  "Warrior Kings - Battles.exe".
 - you click the OK button in the first message box when the game is already
   running.
 - you use WKB version 1.1 or 1.23. If not you can download a patch.
+
+
+Changelog
+-------------------------
+
+v0.1 (20/12/2015): First release.
+v0.2 (06/09/2016): Now also looks for processes named "Warrior Kings - Battles.exe".
