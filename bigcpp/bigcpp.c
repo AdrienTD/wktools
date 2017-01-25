@@ -177,6 +177,7 @@ void LookAt(char *filename)
 	FILE *file; char *fcnt, *fp; int fsize, nwords, i; WIN32_FIND_DATA wfd; HANDLE hfind;
 	char line[MAX_LINE_SIZE], wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE], sarg[MAX_LINE_SIZE];
 	char dirpath[MAX_LINE_SIZE]; char *lbs; int ladder = 0;
+	char *lkfile[512]; int nlkf = 0;
 
 	printf("// From %s\n", filename); /*fflush(stdout);*/ AddLF(filename); outline++;
 
@@ -209,15 +210,14 @@ void LookAt(char *filename)
 				{npblp[i]++;}
 		}
 
-		if(nwords >= 2)
-		{if(!strcmp(word[0], "LINK_GAME_SET"))
+		if(nwords >= 2) if(!strcmp(word[0], "LINK_GAME_SET"))
 		{
-			//GetString(word[1]-wwl+line, sarg);
 			strcpy(sarg, word[1]);
 			if(!strchr(sarg, '*'))
 			{
-				if(!VerifyLF(sarg))
-					LookAt(sarg);
+				//if(!VerifyLF(sarg))
+				//	LookAt(sarg);
+				lkfile[nlkf++] = strdup(sarg);
 			}
 			else
 			{
@@ -231,7 +231,7 @@ void LookAt(char *filename)
 				FindClose(hfind);*/
 			}
 			continue;
-		}}
+		}
 		if(!strcmp(word[0], "CHARACTER_LADDER"))
 			ladder = 1;
 		else if(!strcmp(word[0], "END_CHARACTER_LADDER"))
@@ -240,11 +240,13 @@ void LookAt(char *filename)
 		 if(isobjdef(word[0]))
 		{
 			printf("%s \"%s\" \"%s%s\"\n", word[0], word[1], dirpath, (nwords>=3)?word[2]:"");
-			//printf("%s %s,%s,%s\n", word[0], word[1], dirpath, (nwords>=3)?word[2]:"");
 			/*fflush(stdout);*/ outline++; continue;
 		}
 		fputs(line, stdout); printf("\n"); /*fflush(stdout);*/ outline++;
 	}
+	for(i = 0; i < nlkf; i++)
+		if(!VerifyLF(lkfile[i]))
+			LookAt(lkfile[i]);
 	free(fcnt);
 	fclose(file);
 }
@@ -253,7 +255,7 @@ int main(int argc, char *argv[])
 {
 	int i;
 	if(argc < 2) {printf(
-		"bigcpp version 0.1\n"
+		"bigcpp version 0.2\n"
 		"(C) 2016 AdrienTD\n\n"
 		"Usage: bigcpp <file.cpp>\n"
 		"The current/working directory must be the \"Warrior Kings Game Set\" directory.\n"
