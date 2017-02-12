@@ -18,6 +18,7 @@ These tools are licensed under the MIT license:
 * wkm3v
 * md2_to_wka
 * md2_to_wkm
+* Tools inside the fmtinfo directory (bcma, ltttview, wkanima, wkmtext)
 
 Please take a look at README and LICENSE files for more information.
 
