@@ -25,3 +25,4 @@
 
 #include "util.h"
 #include "growbuffer.h"
+#include "vecmat.h"

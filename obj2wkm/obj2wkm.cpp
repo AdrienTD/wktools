@@ -29,6 +29,7 @@ GrowList<Group> lGrp;
 int totTri = 0;
 
 FILE *fo;
+Position normaltable[256];
 
 void writeChar(char c) {fwrite(&c, 1, 1, fo);}
 void writeShort(short c) {fwrite(&c, 2, 1, fo);}
@@ -110,8 +111,14 @@ int main(int argc, char *argv[])
 {
 	if(argc < 3) {printf("obj2wkm v0.1\n(C) 2016 Adrien Geets\nReleased under the terms of the GPL 3 license.\n\nUsage: obj2wkm [input.obj] [output.mesh3]\n"); return 0;}
 
-	// Read the OBJ file.
 	char *fcnt; int fsize;
+
+	// Read wkNormalTable.bin
+	LoadFile("wkNormalTable.bin", &fcnt, &fsize);
+	memcpy(normaltable, fcnt, 256*12);
+	free(fcnt);
+
+	// Read the OBJ file.
 	LoadFile(argv[1], &fcnt, &fsize);
 	char *fp = fcnt;
 	char wwl[MAX_LINE_SIZE], *word[MAX_WORDS_IN_LINE]; int nwords;
@@ -200,16 +207,40 @@ int main(int argc, char *argv[])
 	writeFloat(0.349460f); writeFloat(6.346513f);
 	writeFloat(1.568925f); writeFloat(8.845937f);
 
-	// Remapper
+	// Position remapper
 	writeShort(lPos.len);
 	for(int i = 0; i < lPos.len; i++)
 		writeShort(i);
 
 	// Normals
-	writeShort(lPos.len);
-	writeInt(lPos.len * 2);
+	GrowList<short> sl;
 	for(int i = 0; i < lPos.len; i++)
-		{writeShort(1); writeShort(i);}
+	{
+		int tind = -1;
+		GrowList<int> ct;
+		for(int j = 0; j < lGrp.len; j++)
+		{
+			Group *g = lGrp.getpnt(j);
+			for(int k = 0; k < g->tri->len; k++)
+			{
+				tind++;
+				Triangle *t = g->tri->getpnt(k);
+				for(int l = 0; l < 3; l++)
+					if(t->p[l] == i)
+						{ct.add(tind); break;}
+			}
+		}
+		if(ct.len == 0)
+			ct.add(0);
+			//ferr("There is a vertex that is not connected to any face. Please remove them.");
+		sl.add(ct.len);
+		for(int j = 0; j < ct.len; j++)
+			sl.add(ct[j]);
+	}
+	writeShort(lPos.len);
+	writeInt(sl.len);
+	for(int i = 0; i < sl.len; i++)
+		writeShort(sl[i]);
 
 	// Materials
 	writeShort(lGrp.len);
@@ -262,6 +293,61 @@ int main(int argc, char *argv[])
 		}
 		//gstart += g->tri->len;
 	}
+
+/*
+	// Normals again
+	for(int i = 0; i < lPos.len; i++)
+		writeChar(0);
+*/
+	for(int i = 0; i < lPos.len; i++)
+	{
+		int ntf = 0;
+		Vector3 nm(0, 0, 0);
+		for(int j = 0; j < lGrp.len; j++)
+		{
+			Group *g = lGrp.getpnt(j);
+			for(int k = 0; k < g->tri->len; k++)
+			{
+				Triangle *t = g->tri->getpnt(k);
+				for(int l = 0; l < 3; l++)
+					if(t->p[l] == i)
+					{
+						ntf++;
+						Position *p0 = lPos.getpnt(t->p[0]);
+						Position *p1 = lPos.getpnt(t->p[1]);
+						Position *p2 = lPos.getpnt(t->p[2]);
+						Vector3 v0(p0->x, p0->y, p0->z);
+						Vector3 v1(p1->x, p1->y, p1->z);
+						Vector3 v2(p2->x, p2->y, p2->z);
+						Vector3 a = v1 - v0, b = v2 - v0;
+						Vector3 cp, un;
+						Vec3Cross(&cp, &a, &b);
+						nm += cp.normal();
+						break;
+					}
+			}
+		}
+
+		if(ntf == 0)
+			writeChar(0);
+		else
+		{
+			nm /= ntf;
+			float s = 100; int best = 0;
+			for(int j = 0; j < 256; j++)
+			{
+				Vector3 a(normaltable[j].x, normaltable[j].y, normaltable[j].z);
+				float t = abs(nm.x - a.x) + abs(nm.y - a.y) + abs(nm.z - a.z);
+				if(t < s) {s = t; best = j;}
+			}
+			writeChar(best);
+		}
+	}
+
+	// Normal remapper
+	writeShort(lPos.len);
+	for(int i = 0; i < lPos.len; i++)
+		writeShort(i);
 
 	fclose(fo);
 	return 1;

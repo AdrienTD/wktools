@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "convtable.h"
 
 #define MD2FPS 8
 #define MD2DUR (1000/(MD2FPS))
@@ -116,14 +117,14 @@ void WriteNormalFrame(int f)
 	md2_frame *m = (md2_frame*)((char*)md2 + md2->oframes + (md2->framesize*f));
 	md2_vertex *v = (md2_vertex*)((char*)m + sizeof(md2_frame));
 	for(i = 0; i < md2->nverts; i++)
-		{write8(v->n); v++;}
+		{write8(convtable[v->n]); v++;}
 }
 
 void WriteNormals()
 {
 	int i;
 	WriteFrameTimes();
-	write32(0/*md2->nverts*/);
+	write32(md2->nverts);
 	for(i = firstframe; i < firstframe+numframes; i++)
 		WriteNormalFrame(i);
 	if(reqloop) WriteNormalFrame(firstframe);

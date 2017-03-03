@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "convtable.h"
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
@@ -109,16 +110,16 @@ int main(int argc, char *argv[])
 	// Sphere (from supply wagon)
 	writefloat(0.471943f); writefloat(2.353645f); writefloat(-1.298914f); writefloat(3.881023f);
 
-	// Remapper
+	// Position remapper
 	write16(md2->nverts);
 	for(i = 0; i < md2->nverts; i++)
 		write16(i);
 
-	// Normals
+	// Normal surfaces
 	write16(md2->nverts);
 	write32(md2->nverts*2);
 	for(i = 0; i < md2->nverts; i++)
-		{write16(1); write16(i);}
+		{write16(1); write16(0);}
 
 	// Materials
 	write16(1);
@@ -160,6 +161,16 @@ int main(int argc, char *argv[])
 
 	for(i = 0; i < md2->ntris; i++)
 		{write16(i*3); write16(i*3+1); write16(i*3+2);}
+
+	// Normals
+	mv = v1;
+	for(i = 0; i < md2->nverts; i++)
+		write8(convtable[(mv++)->n]);
+
+	// Normal remapper
+	write16(md2->nverts);
+	for(i = 0; i < md2->nverts; i++)
+		write16(i);
 
 	fclose(fo);
 	return 0;
