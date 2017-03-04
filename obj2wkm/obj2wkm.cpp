@@ -333,12 +333,12 @@ int main(int argc, char *argv[])
 		else
 		{
 			nm /= ntf;
-			float s = 100; int best = 0;
+			float s = -100; int best = 0;
 			for(int j = 0; j < 256; j++)
 			{
 				Vector3 a(normaltable[j].x, normaltable[j].y, normaltable[j].z);
-				float t = abs(nm.x - a.x) + abs(nm.y - a.y) + abs(nm.z - a.z);
-				if(t < s) {s = t; best = j;}
+				float t = nm.dot(a);
+				if(t > s) {s = t; best = j;}
 			}
 			writeChar(best);
 		}

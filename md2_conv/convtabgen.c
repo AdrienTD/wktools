@@ -178,17 +178,17 @@ int main()
 	fread(bctable, 256*3, 4, file);
 	fclose(file);
 
-	printf("char convtable[256] = {");
+	printf("unsigned char convtable[162] = {");
 
 	for(i = 0; i < 162; i++)
 	{
-		hs = 100; b = 0;
+		hs = -100; b = 0;
 		for(j = 0; j < 256; j++)
 		{
 			js = 0;
 			for(k = 0; k < 3; k++)
-				js += abs(idtable[i][k] - bctable[j][k]);
-			if(js < hs)
+				js += idtable[i][k] * bctable[j][k];
+			if(js > hs)
 				{hs = js; b = j;}
 		}
 		printf("%i,", b);
