@@ -1,6 +1,6 @@
 bcppack - BCP packer
-(C) 2016 Adrien Geets
-Released under the terms of the GPL3. See LICENSE for more information.
+(C) 2016 AdrienTD
+Licensed under the MIT license (see license.txt for more information)
 
 Usage: bcppack "path/to/directory/to/pack" "output.bcp" "version"
 Version can be either 0 for WK 1.0-1.3, or 2 for WK 1.4 and WKBattles

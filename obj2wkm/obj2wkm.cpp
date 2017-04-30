@@ -1,18 +1,6 @@
 // obj2wkm - OBJ to MESH3 file converter for WK (Battles)
-// Copyright (C) 2016 Adrien Geets
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// (C) 2016-2017 AdrienTD
+// Licensed under the MIT license (see license.txt for more information)
 
 #include "global.h"
 
@@ -109,7 +97,7 @@ void ReadVertex(char *w, int *tp, int *tt)
 
 int main(int argc, char *argv[])
 {
-	if(argc < 3) {printf("obj2wkm v0.1\n(C) 2016 Adrien Geets\nReleased under the terms of the GPL 3 license.\n\nUsage: obj2wkm [input.obj] [output.mesh3]\n"); return 0;}
+	if(argc < 3) {printf("obj2wkm v0.1\n(C) 2016 Adrien Geets\nReleased under the terms of the MIT license.\n\nUsage: obj2wkm [input.obj] [output.mesh3]\n"); return 0;}
 
 	char *fcnt; int fsize;
 

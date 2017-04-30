@@ -1,18 +1,6 @@
 // BCP Viewer
-// Copyright (C) 2016 Adrien Geets
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// (C) 2016 AdrienTD
+// Licensed under the MIT license (see license.txt for more information)
 
 #define VERSION "1.0.0.0"
 #include <Windows.h>
@@ -358,7 +346,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					break;
 				case IDM_ABOUT:
-					MessageBox(hWnd, "BCP Viewer\nVersion: " VERSION "\n(C) 2015-2016 AdrienTD\nLicensed under the GNU GPL3 license.", title, 64); break;
+					MessageBox(hWnd, "BCP Viewer\nVersion: " VERSION "\n(C) 2015-2017 AdrienTD\nLicensed under the MIT license.", title, 64); break;
 				case IDM_QUIT:
 					DestroyWindow(hWnd); break;
 			} break;

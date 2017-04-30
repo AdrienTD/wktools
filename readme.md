@@ -3,22 +3,22 @@
 This is the source code of some tools which allow viewing and modifying game data files from Warrior Kings (Battles).
 
 If you want to use these tools you might want the binaries of the tools. You can download them from:
+* [my Google Drive](https://drive.google.com/open?id=0B-xteMV6gdTeWG9rSHNmS19XQWs)
 * [Warrior Kings Events site](http://warriorkingsevents.jimdo.com/media)
-* ~~[my Google Drive](https://drive.google.com/open?id=0B-xteMV6gdTeWG9rSHNmS19XQWs)~~
-
-These tools are licensed under the GNU GPL 3 license:
-* bcppack
-* bcpview
-* bigcpp
-* obj2wkm
-* wkbmee
-* wkm2obj
 
 These tools are licensed under the MIT license:
-* wkm3v
-* md2_to_wka
-* md2_to_wkm
-* Tools inside the fmtinfo directory (bcma, ltttview, wkanima, wkmtext)
+* __bcppack__: Create BCP files.
+* __bcpview__: View/extract BCP files.
+* __bigcpp__: Includes all gsf/cpp files into a single one.
+* __obj2wkm__: Converts OBJ model files to Mesh3.
+* __wkbmee__: Patch tool to access map editor in WKB.
+* __wkm2obj__: Converts Mesh3 files to OBJ models.
+* __wkm3v__: Mesh3 and Anim3 viewer.
+* **md2_to_wka** and **md2_to_wkm**: Converts MD2 files to Anim3 and Mesh3 respectively.
+* Tools inside the fmtinfo directory (__bcma, ltttview, wkanima, wkmtext__)
+* __bcm2snr__: Converts BCM maps to SNR/TRN/PCX files.
+
+__UPDATE:__ Tools previously released under the GPL3 license are now relicensed to the MIT license.
 
 Please take a look at README and LICENSE files for more information.
 
