@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 
 	//printo("\n# ntrilist @ 0x%X", ftell(file));
 	ntrilist = readint();
-	if(requvlist >= ntrilist) ferr(-9);
+	if(reqtrilist >= ntrilist) ferr(-9);
 
 	//fseek(file, dbga, SEEK_SET);
 	for(a = 0; a < ntrilist; a++)

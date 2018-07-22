@@ -2,7 +2,7 @@
 // (C) 2016 AdrienTD
 // Licensed under the MIT license (see license.txt for more information)
 
-#define VERSION "1.0.0.0"
+#define VERSION "1.0.1.0"
 #include <Windows.h>
 #include <commctrl.h>
 #include <stdio.h>
@@ -97,18 +97,10 @@ int LoadBCP(char *fn)
 	idti.item.pszText = abuf;
 	idti.item.cchTextMax = 3;
 
-	while(1)
-	{
-		i = fgetc(file);
-		if(feof(file)) fErr(-3, "Where is the 0xFF byte?");
-		if(i == 0xFF || i == 0) break;
-	}
-	rp = ftell(file);
 	fseek(file, 9, SEEK_SET);
 	ver = fgetc(file) - '0';
-	fseek(file, rp, SEEK_SET);
+	fseek(file, 0x30, SEEK_SET);
 
-	fseek(file, 2, SEEK_CUR);
 	fseek(file, fentof = _getw(file), SEEK_SET);
 	nfiles = _getw(file);
 	fent = (fileentry*)malloc(nfiles*20);

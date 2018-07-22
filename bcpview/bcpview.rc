@@ -51,8 +51,8 @@ IDI_MAINICON       ICON           ".\\bcpview.ico"
 // Version Information resources
 //
 1 VERSIONINFO
-    FILEVERSION     1,0,0,0
-    PRODUCTVERSION  1,0,0,0
+    FILEVERSION     1,0,1,0
+    PRODUCTVERSION  1,0,1,0
     FILEOS          VOS_UNKNOWN
     FILETYPE        VFT_UNKNOWN
     FILESUBTYPE     VFT2_UNKNOWN
@@ -66,14 +66,14 @@ IDI_MAINICON       ICON           ".\\bcpview.ico"
             VALUE "Comments", ""
             VALUE "CompanyName", "Adrien Geets"
             VALUE "FileDescription", "BCP Viewer"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileVersion", "1.0.1.0"
             VALUE "InternalName", "bcpview"
             VALUE "LegalCopyright", "Copyright (C) 2015-2016 Adrien Geets"
             VALUE "LegalTrademarks", ""
             VALUE "OriginalFilename", "bcpview.exe"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "BCP Viewer"
-            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "ProductVersion", "1.0.1.0"
             VALUE "SpecialBuild", ""
         }
     }

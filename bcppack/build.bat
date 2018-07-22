@@ -1,1 +1,1 @@
-@cl *.cpp *.c /O2 
+@cl *.cpp *.c /O2 %*
