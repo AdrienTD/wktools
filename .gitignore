@@ -32,3 +32,5 @@
 *.pdb
 *.res
 *.ilk
+.vs/
+.vscode/
