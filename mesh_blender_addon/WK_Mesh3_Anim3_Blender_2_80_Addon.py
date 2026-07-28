@@ -338,8 +338,31 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 			writepack(outfile, 'H', i)
 
 		dbg("Normals")
-		writepack(outfile, "HI", nverts, 2*nverts)
-		for i in range(nverts):
+		normalKeyList = []
+		normalKeyToIndex = dict()
+		loopToNormalIndex = dict()
+		for p in mesh.polygons:
+			if p.use_smooth:
+				# one normal per vertex
+				for lp in p.loop_indices:
+					loop = mesh.loops[lp]
+					key = ('v', loop.vertex_index)
+					if key not in normalKeyToIndex:
+						normalKeyToIndex[key] = len(normalKeyList)
+						normalKeyList.append(key)
+					loopToNormalIndex[lp] = normalKeyToIndex[key]
+			else:
+				# one normal per face
+				key = ('f', p.index)
+				if key not in normalKeyToIndex:
+					normalKeyToIndex[key] = len(normalKeyList)
+					normalKeyList.append(key)
+				for lp in p.loop_indices:
+					loopToNormalIndex[lp] = normalKeyToIndex[key]
+
+		numNormals = len(normalKeyList)
+		writepack(outfile, "HI", numNormals, 2*numNormals)
+		for i in range(numNormals):
 			writepack(outfile, 'HH', 1, 0)
 
 		dbg("Materials")
@@ -364,13 +387,29 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		dbg("Texture coordinates")
 		nuvlists = len(mesh.uv_layers)
 		assert nuvlists >= 1, "This mesh does not have any UV maps. At least one UV map is required."
-		ntxcrds = len(mesh.uv_layers[0].data)
+		numLoops = len(mesh.loops)
+		assert numLoops == len(mesh.uv_layers[0].data)
 		writepack(outfile, "I", nuvlists)
-		for l in mesh.uv_layers:
-			assert len(l.data) == ntxcrds
-			writepack(outfile, "H", ntxcrds)
-			for u in l.data:
-				writepack(outfile, 'ff', u.uv.x, 1-u.uv.y)
+		uvMap = dict()
+		uvVector = []
+		loopToUv = []
+		for loopIndex in range(numLoops):
+			key = []
+			for uvListIndex in range(nuvlists):
+				uv = mesh.uv_layers[uvListIndex].data[loopIndex]
+				key.append(uv.uv.x)
+				key.append(uv.uv.y)
+			key = tuple(key)
+			if key not in uvMap:
+				uvMap[key] = len(uvVector)
+				uvVector.append(key)
+			loopToUv.append(uvMap[key])
+
+		for uvListIndex in range(nuvlists):
+			writepack(outfile, "H", len(uvVector))
+			for uvIndex in range(len(uvVector)):
+				key = uvVector[uvIndex]
+				writepack(outfile, 'ff', key[2*uvListIndex], 1-key[2*uvListIndex+1])
 
 		dbg("Groups")
 		grplist = []
@@ -387,11 +426,11 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 			grplist.append(gl)
 			writepack(outfile, "H", len(gl))
 			for l in gl:
-				writepack(outfile, "HHH", mesh.loops[l].vertex_index, mesh.loops[l].vertex_index, l)
+				writepack(outfile, "HHH", mesh.loops[l].vertex_index, loopToNormalIndex[l], loopToUv[l])
 
 		dbg("Polygon list")
 		writepack(outfile, "I", 1)
-		writepack(outfile, "HHHf", nverts, nverts, ntxcrds, 0)
+		writepack(outfile, "HHHf", nverts, len(normalKeyList), len(uvVector), 0)
 		for m in range(len(obj.material_slots)):
 			gl = grplist[m]
 			writepack(outfile, "HHH", len(gl)//3, len(gl), m)
@@ -402,13 +441,16 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 					writepack(outfile, "HHH", 3*l, 3*l+1, 3*l+2)
 
 		dbg("Normals")
-		for v in mesh.vertices:
-			nrm = v.normal
+		for nrmType, index in normalKeyList:
+			if nrmType == 'v':
+				nrm = mesh.vertices[index].normal
+			elif nrmType == 'f':
+				nrm = mesh.polygons[index].normal
 			writepack(outfile, "B", FindNearestNormalTableIndex(syz(nrm)))
 
 		dbg("Normal remapper")
-		writepack(outfile, "H", nverts)
-		for i in range(nverts):
+		writepack(outfile, "H", numNormals)
+		for i in range(numNormals):
 			writepack(outfile, "H", i)
 
 		self.report({"INFO"}, "Mesh3 exported successfully!")
