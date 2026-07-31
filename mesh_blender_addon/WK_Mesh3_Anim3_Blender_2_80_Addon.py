@@ -412,33 +412,45 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 				writepack(outfile, 'ff', key[2*uvListIndex], 1-key[2*uvListIndex+1])
 
 		dbg("Groups")
-		grplist = []
+		triLists = []
 		writepack(outfile, "I", nmats)
 		assert len(obj.material_slots) >= 1, "The mesh does not have at any material. At least one material is required."
 		for m in range(len(obj.material_slots)):
 			gl = []
 			for p in mesh.polygons:
 				if p.material_index == m:
-					for l in p.loop_indices[2:]:
-						gl.append(p.loop_start)
-						gl.append(l - 1)
-						gl.append(l)
-			grplist.append(gl)
-			writepack(outfile, "H", len(gl))
+					for l in range(2, len(p.loop_indices)):
+						tri = [p.loop_start, p.loop_indices[l - 1], p.loop_indices[l]]
+						if swap_yz_coords:
+							tri[1], tri[2] = tri[2], tri[1]
+						gl += tri
+			triLists.append(gl)
+		groupListsPerMaterial = []
+		loopToGroupIndex = dict()
+		for m in range(len(obj.material_slots)):
+			groupList = []
+			groupToIndex = dict()
+			gl = triLists[m]
 			for l in gl:
-				writepack(outfile, "HHH", mesh.loops[l].vertex_index, loopToNormalIndex[l], loopToUv[l])
+				group = (mesh.loops[l].vertex_index, loopToNormalIndex[l], loopToUv[l])
+				if group not in groupToIndex:
+					groupToIndex[group] = len(groupList)
+					groupList.append(group)
+				loopToGroupIndex[l] = groupToIndex[group]
+			groupListsPerMaterial.append(groupList)
+		for groupList in groupListsPerMaterial:
+			writepack(outfile, "H", len(groupList))
+			for grp in groupList:
+				writepack(outfile, "HHH", *grp)
 
 		dbg("Polygon list")
 		writepack(outfile, "I", 1)
 		writepack(outfile, "HHHf", nverts, len(normalKeyList), len(uvVector), 0)
 		for m in range(len(obj.material_slots)):
-			gl = grplist[m]
+			gl = triLists[m]
 			writepack(outfile, "HHH", len(gl)//3, len(gl), m)
-			for l in range(len(gl)//3):
-				if swap_yz_coords:
-					writepack(outfile, "HHH", 3*l, 3*l+2, 3*l+1)
-				else:
-					writepack(outfile, "HHH", 3*l, 3*l+1, 3*l+2)
+			for l in gl:
+				writepack(outfile, "H", loopToGroupIndex[l])
 
 		dbg("Normals")
 		for nrmType, index in normalKeyList:
