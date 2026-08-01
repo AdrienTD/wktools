@@ -568,6 +568,8 @@ def ExportAnim3(obj, output_filename, meshname, swap_yz_coords=True, self=None):
 						crdmin = v.co[c]
 				crdadd = crdmin
 				crdmul = crdmax-crdmin
+				if crdmul == 0:
+					crdmul = 1  # prevents a division by zero
 				writepack(outfile, "ff", crdadd, crdmul)
 
 				def writegroup(i, s):
