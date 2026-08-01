@@ -115,6 +115,30 @@ def WriteSphere(outfile, mesh, swapyz):
 		center[1],center[2] = center[2],center[1]
 	writepack(outfile, "ffff", center[0], center[1], center[2], max(mmdiff)/2)
 
+def GenerateMeshNormals(mesh):
+	normalKeyList = []
+	normalKeyToIndex = dict()
+	loopToNormalIndex = dict()
+	for p in mesh.polygons:
+		if p.use_smooth:
+			# one normal per vertex
+			for lp in p.loop_indices:
+				loop = mesh.loops[lp]
+				key = ('v', loop.vertex_index)
+				if key not in normalKeyToIndex:
+					normalKeyToIndex[key] = len(normalKeyList)
+					normalKeyList.append(key)
+				loopToNormalIndex[lp] = normalKeyToIndex[key]
+		else:
+			# one normal per face
+			key = ('f', p.index)
+			if key not in normalKeyToIndex:
+				normalKeyToIndex[key] = len(normalKeyList)
+				normalKeyList.append(key)
+			for lp in p.loop_indices:
+				loopToNormalIndex[lp] = normalKeyToIndex[key]
+	return normalKeyList, loopToNormalIndex
+
 #################
 ##### Mesh3 #####
 #################
@@ -338,28 +362,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 			writepack(outfile, 'H', i)
 
 		dbg("Normals")
-		normalKeyList = []
-		normalKeyToIndex = dict()
-		loopToNormalIndex = dict()
-		for p in mesh.polygons:
-			if p.use_smooth:
-				# one normal per vertex
-				for lp in p.loop_indices:
-					loop = mesh.loops[lp]
-					key = ('v', loop.vertex_index)
-					if key not in normalKeyToIndex:
-						normalKeyToIndex[key] = len(normalKeyList)
-						normalKeyList.append(key)
-					loopToNormalIndex[lp] = normalKeyToIndex[key]
-			else:
-				# one normal per face
-				key = ('f', p.index)
-				if key not in normalKeyToIndex:
-					normalKeyToIndex[key] = len(normalKeyList)
-					normalKeyList.append(key)
-				for lp in p.loop_indices:
-					loopToNormalIndex[lp] = normalKeyToIndex[key]
-
+		normalKeyList, loopToNormalIndex = GenerateMeshNormals(mesh)
 		numNormals = len(normalKeyList)
 		writepack(outfile, "HI", numNormals, 2*numNormals)
 		for i in range(numNormals):
@@ -596,11 +599,15 @@ def ExportAnim3(obj, output_filename, meshname, swap_yz_coords=True, self=None):
 
 		dbg("Normals")
 		WriteFrameTimes()
-		writepack(outfile, "I", nverts)
+		normalKeyList, _ = GenerateMeshNormals(frmeshs[0])
+		writepack(outfile, "I", len(normalKeyList))
 		for f in range(nobjframes):
-			m = frmeshs[f]
-			for v in m.vertices:
-				nrm = v.normal
+			mesh = frmeshs[f]
+			for nrmType, index in normalKeyList:
+				if nrmType == 'v':
+					nrm = mesh.vertices[index].normal
+				elif nrmType == 'f':
+					nrm = mesh.polygons[index].normal
 				writepack(outfile, "B", FindNearestNormalTableIndex(syz(nrm)))
 
 		self.report({"INFO"}, "Anim3 exported successfully!")
