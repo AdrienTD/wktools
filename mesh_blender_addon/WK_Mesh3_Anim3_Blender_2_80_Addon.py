@@ -88,6 +88,13 @@ def showexc(self):
 		self.report({"ERROR"}, str(sys.exc_info()[1]) + "\n\n" + traceback.format_exc())
 		traceback.print_exc()
 
+def FindPrincipledBsdfNode(material):
+	for node in material.node_tree.nodes:
+		if node.type == 'BSDF_PRINCIPLED':
+			return node
+	assert False, "Could not find the Principled BSDF node in the material"
+	return None
+
 def FindNearestNormalTableIndex(nrm):
 	bestindex = 0
 	bestdp = -1
@@ -219,7 +226,7 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 			m.alpha_threshold = 0.94
 			mats.append(m)
 			
-			bsdf = m.node_tree.nodes['Principled BSDF']
+			bsdf = FindPrincipledBsdfNode(m)
 			imgnode = m.node_tree.nodes.new('ShaderNodeTexImage')
 			m.node_tree.links.new(imgnode.outputs['Color'], bsdf.inputs['Base Color'])
 			imgpath = dirname + "/" + s
@@ -378,7 +385,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 				writepack(outfile, "B", 0)
 			imgname = "Gold.tga"
 			try:
-				bsdf = m.node_tree.nodes['Principled BSDF']
+				bsdf = FindPrincipledBsdfNode(m)
 				imgnode = bsdf.inputs['Base Color'].links[0].from_node
 				imgname = imgnode.image.name
 			except:
