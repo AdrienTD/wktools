@@ -123,15 +123,24 @@ def WriteSphere(outfile, mesh, swapyz):
 	writepack(outfile, "ffff", center[0], center[1], center[2], max(mmdiff)/2)
 
 def GenerateMeshNormals(mesh):
+	sharpEdgeVertexIndices = set()
+	for edge in mesh.edges:
+		if edge.use_edge_sharp:
+			for v in edge.vertices:
+				sharpEdgeVertexIndices.add(v)
+				
 	normalKeyList = []
 	normalKeyToIndex = dict()
 	loopToNormalIndex = dict()
 	for p in mesh.polygons:
 		if p.use_smooth:
-			# one normal per vertex
+			# one normal per vertex/loop
 			for lp in p.loop_indices:
 				loop = mesh.loops[lp]
-				key = ('v', loop.vertex_index)
+				if loop.vertex_index in sharpEdgeVertexIndices:
+					key = ('l', lp)
+				else:
+					key = ('v', loop.vertex_index)
 				if key not in normalKeyToIndex:
 					normalKeyToIndex[key] = len(normalKeyList)
 					normalKeyList.append(key)
@@ -145,6 +154,19 @@ def GenerateMeshNormals(mesh):
 			for lp in p.loop_indices:
 				loopToNormalIndex[lp] = normalKeyToIndex[key]
 	return normalKeyList, loopToNormalIndex
+
+def ComputeMeshNormalBytes(mesh, normalKeyList, swap_yz_coords):
+	normalData = bytearray()
+	for nrmType, index in normalKeyList:
+		if nrmType == 'l':
+			nrm = mesh.loops[index].normal
+		elif nrmType == 'v':
+			nrm = mesh.vertices[index].normal
+		elif nrmType == 'f':
+			nrm = mesh.polygons[index].normal
+		nrm = (nrm[0], nrm[2], nrm[1]) if swap_yz_coords else (nrm[0], nrm[1], nrm[2])
+		normalData.append(FindNearestNormalTableIndex(nrm))
+	return normalData
 
 #################
 ##### Mesh3 #####
@@ -463,12 +485,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 				writepack(outfile, "H", loopToGroupIndex[l])
 
 		dbg("Normals")
-		for nrmType, index in normalKeyList:
-			if nrmType == 'v':
-				nrm = mesh.vertices[index].normal
-			elif nrmType == 'f':
-				nrm = mesh.polygons[index].normal
-			writepack(outfile, "B", FindNearestNormalTableIndex(syz(nrm)))
+		outfile.write(ComputeMeshNormalBytes(mesh, normalKeyList, swap_yz_coords))
 
 		dbg("Normal remapper")
 		writepack(outfile, "H", numNormals)
@@ -609,13 +626,7 @@ def ExportAnim3(obj, output_filename, meshname, swap_yz_coords=True, self=None):
 		normalKeyList, _ = GenerateMeshNormals(frmeshs[0])
 		writepack(outfile, "I", len(normalKeyList))
 		for f in range(nobjframes):
-			mesh = frmeshs[f]
-			for nrmType, index in normalKeyList:
-				if nrmType == 'v':
-					nrm = mesh.vertices[index].normal
-				elif nrmType == 'f':
-					nrm = mesh.polygons[index].normal
-				writepack(outfile, "B", FindNearestNormalTableIndex(syz(nrm)))
+			outfile.write(ComputeMeshNormalBytes(frmeshs[f], normalKeyList, swap_yz_coords))
 
 		self.report({"INFO"}, "Anim3 exported successfully!")
 	except:
