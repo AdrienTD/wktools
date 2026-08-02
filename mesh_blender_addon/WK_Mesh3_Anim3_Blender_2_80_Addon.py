@@ -376,10 +376,10 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 			writepack(outfile, 'HH', 1, 0)
 
 		dbg("Materials")
-		nmats = len(mesh.materials)
-		writepack(outfile, "H", nmats)
-		for m in mesh.materials:
-			if m.blend_method != 'OPAQUE':
+		exported_materials = list(set(obj.material_slots[p.material_index].material for p in mesh.polygons))
+		writepack(outfile, "H", len(exported_materials))
+		for m in exported_materials:
+			if m != None and m.blend_method != 'OPAQUE':
 				writepack(outfile, "B", 1)
 			else:
 				writepack(outfile, "B", 0)
@@ -423,12 +423,12 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 
 		dbg("Groups")
 		triLists = []
-		writepack(outfile, "I", nmats)
-		assert len(obj.material_slots) >= 1, "The mesh does not have at any material. At least one material is required."
-		for m in range(len(obj.material_slots)):
+		writepack(outfile, "I", len(exported_materials))
+		assert len(exported_materials) >= 1, "The mesh does not have at any material. At least one material is required."
+		for mat in exported_materials:
 			gl = []
 			for p in mesh.polygons:
-				if p.material_index == m:
+				if obj.material_slots[p.material_index].material == mat:
 					for l in range(2, len(p.loop_indices)):
 						tri = [p.loop_start, p.loop_indices[l - 1], p.loop_indices[l]]
 						if swap_yz_coords:
@@ -437,7 +437,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 			triLists.append(gl)
 		groupListsPerMaterial = []
 		loopToGroupIndex = dict()
-		for m in range(len(obj.material_slots)):
+		for m in range(len(exported_materials)):
 			groupList = []
 			groupToIndex = dict()
 			gl = triLists[m]
@@ -456,7 +456,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		dbg("Polygon list")
 		writepack(outfile, "I", 1)
 		writepack(outfile, "HHHf", nverts, len(normalKeyList), len(uvVector), 0)
-		for m in range(len(obj.material_slots)):
+		for m in range(len(exported_materials)):
 			gl = triLists[m]
 			writepack(outfile, "HHH", len(gl)//3, len(gl), m)
 			for l in gl:
