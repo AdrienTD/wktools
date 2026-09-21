@@ -480,7 +480,7 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		writepack(outfile, "HHHf", nverts, len(normalKeyList), len(uvVector), 0)
 		for m in range(len(exported_materials)):
 			gl = triLists[m]
-			writepack(outfile, "HHH", len(gl)//3, len(gl), m)
+			writepack(outfile, "HHH", len(gl)//3, len(groupListsPerMaterial[m]), m)
 			for l in gl:
 				writepack(outfile, "H", loopToGroupIndex[l])
 
