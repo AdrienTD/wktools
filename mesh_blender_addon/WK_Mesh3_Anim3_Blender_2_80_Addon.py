@@ -24,7 +24,7 @@
 
 bl_info = {
 "name": "Warrior Kings Mesh3/Anim3 Tools",
-"description": "Import Mesh3 and export Mesh3 and Anim3 files for Warrior Kings (Battles).",
+"description": "Import Mesh3 and export Mesh3 and Anim3 files for Warrior Kings (Battles)",
 "author": "AdrienTD",
 "version": (0,1,1),
 "blender": (2,80,0),
@@ -642,41 +642,41 @@ def ExportAnim3(obj, output_filename, meshname, swap_yz_coords=True, self=None):
 ####
 
 class ExportMesh3Operator(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
-	"""Export the active object's static mesh to Mesh3 format for Warrior Kings."""
+	"""Export the active object's static mesh to Mesh3 format for Warrior Kings"""
 	bl_idname = "wkm3a3export.export_mesh3"
 	bl_label = "Export to .mesh3"
 
 	filename_ext = ".mesh3"
 
-	apply_modifiers: bpy.props.BoolProperty(name="Apply modifiers", description="Apply modifiers (e.g. armature) to the vertices at the current frame when exporting the mesh.", default=False)
-	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points.", default=True)
+	apply_modifiers: bpy.props.BoolProperty(name="Apply modifiers", description="Apply modifiers (e.g. armature) to the vertices at the current frame when exporting the mesh", default=False)
+	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points", default=True)
 
 	def execute(self, context):
 		ExportMesh3(context.active_object, self.filepath, self.apply_modifiers, self.swap_yz_coords, self)
 		return {"FINISHED"}
 
 class ExportAnim3Operator(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
-	"""Export the active object's animation to Anim3 format for Warrior Kings."""
+	"""Export the active object's animation to Anim3 format for Warrior Kings"""
 	bl_idname = "wkm3a3export.export_anim3"
 	bl_label = "Export to .anim3"
 
 	filename_ext = ".anim3"
 
 	meshname: bpy.props.StringProperty(name="Mesh3 file", description="Name of Mesh3 file the animation is based on / linked to", default="Default.mesh3")
-	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points.", default=True)
+	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points", default=True)
 
 	def execute(self, context):
 		ExportAnim3(context.active_object, self.filepath, self.meshname, self.swap_yz_coords, self)
 		return {"FINISHED"}
 
 class ImportMesh3Operator(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
-	"""Import a Warrior Kings Mesh3 file."""
+	"""Import a Warrior Kings Mesh3 file"""
 	bl_idname = "wkm3a3export.import_mesh3"
 	bl_label = "Import .mesh3"
 
 	filename_ext = ".mesh3"
 
-	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points.", default=True)
+	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points", default=True)
 
 	def execute(self, context):
 		ImportMesh3(self.filepath, self.swap_yz_coords, self)
@@ -715,10 +715,10 @@ class AttachmentPointPanel(bpy.types.Panel):
 		lo.prop(obj, "attachpnt_on")
 
 def register():
-	bpy.types.Object.is_attachpnt = bpy.props.BoolProperty(name="Is Attachment Point", description="Indicates whether the object should be exported to Mesh3/Anim3 as an attachment point.")
+	bpy.types.Object.is_attachpnt = bpy.props.BoolProperty(name="Is Attachment Point", description="Indicates whether the object should be exported to Mesh3/Anim3 as an attachment point")
 	bpy.types.Object.attachpnt_tag = bpy.props.StringProperty(name="Tag", description="Tag of the attachment point")
-	bpy.types.Object.attachpnt_file = bpy.props.StringProperty(name="File", description="Name of model file (.mesh3/.anim3) attached to the attachment point.\nPath relative to \"Warrior Kings Game Set\\\".")
-	bpy.types.Object.attachpnt_on = bpy.props.BoolProperty(default=True, name="On", description="State of the attachment point.\nUsed for visibility in the game, as well as for triggers.\nCan be animated in Anim3.")
+	bpy.types.Object.attachpnt_file = bpy.props.StringProperty(name="File", description="Name of model file (.mesh3/.anim3) attached to the attachment point.\nPath relative to \"Warrior Kings Game Set\\\"")
+	bpy.types.Object.attachpnt_on = bpy.props.BoolProperty(default=True, name="On", description="State of the attachment point.\nUsed for visibility in the game, as well as for triggers.\nCan be animated in Anim3")
 	bpy.utils.register_class(AttachmentPointPanel)
 	bpy.utils.register_class(ExportMesh3Operator)
 	bpy.utils.register_class(ExportAnim3Operator)
