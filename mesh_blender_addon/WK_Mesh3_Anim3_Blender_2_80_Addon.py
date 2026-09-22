@@ -330,7 +330,7 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 	if infile != None:
 		infile.close()
 
-def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True, self=None):
+def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True, version=3, self=None):
 	outfile = None
 	aplist = []
 	mesh = None
@@ -364,7 +364,8 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		outfile = open(output_filename, "wb")
 
 		writestr(outfile, b"Mesh")
-		writepack(outfile, "II", 3, 0)
+		writepack(outfile, "II", version, 1 if version == 4 else 0)
+		use_remapper = version == 3
 
 		dbg("Attachment points")
 		writepack(outfile, "H", len(aplist))
@@ -387,10 +388,11 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		dbg("Sphere")
 		WriteSphere(outfile, mesh, swap_yz_coords)
 
-		dbg("Position remapper")
-		writepack(outfile, "H", nverts)
-		for i in range(nverts):
-			writepack(outfile, 'H', i)
+		if use_remapper:
+			dbg("Position remapper")
+			writepack(outfile, "H", nverts)
+			for i in range(nverts):
+				writepack(outfile, 'H', i)
 
 		dbg("Normals")
 		normalKeyList, loopToNormalIndex = GenerateMeshNormals(mesh)
@@ -489,10 +491,11 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		dbg("Normals")
 		outfile.write(ComputeMeshNormalBytes(mesh, normalKeyList, swap_yz_coords))
 
-		dbg("Normal remapper")
-		writepack(outfile, "H", numNormals)
-		for i in range(numNormals):
-			writepack(outfile, "H", i)
+		if use_remapper:
+			dbg("Normal remapper")
+			writepack(outfile, "H", numNormals)
+			for i in range(numNormals):
+				writepack(outfile, "H", i)
 
 		self.report({"INFO"}, "Mesh3 exported successfully!")
 	except:
@@ -652,9 +655,10 @@ class ExportMesh3Operator(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
 	apply_modifiers: bpy.props.BoolProperty(name="Apply modifiers", description="Apply modifiers (e.g. armature) to the vertices at the current frame when exporting the mesh", default=False)
 	swap_yz_coords: bpy.props.BoolProperty(name="Swap Y & Z coordinates", description="Swap the Y & Z coordinates of vertices, normals and attachment points", default=True)
+	optimize_for_battles: bpy.props.BoolProperty(name="Optimize for WK Battles", description="Use the newer format version 4 from WK Battles, which removes the redundant 'Remapper' sections.\nThe file becomes slightly smaller and faster to load, but won't load in the first WK", default=False)
 
 	def execute(self, context):
-		ExportMesh3(context.active_object, self.filepath, self.apply_modifiers, self.swap_yz_coords, self)
+		ExportMesh3(context.active_object, self.filepath, self.apply_modifiers, self.swap_yz_coords, 4 if self.optimize_for_battles else 3, self)
 		return {"FINISHED"}
 
 class ExportAnim3Operator(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
