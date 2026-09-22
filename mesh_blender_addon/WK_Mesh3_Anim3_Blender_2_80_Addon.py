@@ -193,7 +193,9 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 		if signature != b"Mesh":
 			raise BaseException("File is not a Mesh3 file!")
 
-		ver,unk = readpack(infile, "II")
+		head_version, head_flags = readpack(infile, "II")
+		assert head_version in (3, 4)
+		has_remappers = head_version == 3 or (head_flags & 1) == 0
 
 		dirname = os.path.dirname(input_filename)
 		objname = os.path.basename(input_filename)
@@ -225,7 +227,7 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 		readpack(infile, "ffff")
 
 		# Vertex position remapper
-		if ver == 3:
+		if has_remappers:
 			nposremaps, = readpack(infile, "H")
 			infile.seek(2*nposremaps, os.SEEK_CUR)
 
