@@ -1,8 +1,8 @@
-# WK Mesh3/Anim3 Import/Export Addon for Blender 2.80
+# WK Mesh3/Anim3 Import/Export Addon for Blender 2.80+
 # Supports mesh vertices, faces, UV maps, materials, attachment points, ...)
-# Version 0.1.1
+# Version 0.2
 #
-# Copyright (c) 2018-2019 AdrienTD
+# Copyright (c) 2018-2026 AdrienTD
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ bl_info = {
 "name": "Warrior Kings Mesh3/Anim3 Tools",
 "description": "Import Mesh3 and export Mesh3 and Anim3 files for Warrior Kings (Battles)",
 "author": "AdrienTD",
-"version": (0,1,1),
+"version": (0,2,0),
 "blender": (2,80,0),
 "location": "File > Import/Export > Warrior Kings Mesh/Animation",
 "category": "Import-Export",
