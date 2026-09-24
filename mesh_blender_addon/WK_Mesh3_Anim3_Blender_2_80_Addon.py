@@ -95,6 +95,23 @@ def FindPrincipledBsdfNode(material):
 	assert False, "Could not find the Principled BSDF node in the material"
 	return None
 
+def IsAlphaTestEnabled(material):
+	try:
+		# Blender 2.80 - 4.1
+		if bpy.app.version < (4,2,0):
+			if material.blend_method == 'OPAQUE':
+				return False
+			if material.blend_method == 'CLIP':
+				return True
+		# Blender 4.2+
+		if bpy.app.version >= (4,2,0):
+			bsdf = FindPrincipledBsdfNode(material)
+			return len(bsdf.inputs['Alpha'].links) > 0
+	except:
+		pass
+	# If we can't determine the alpha flag, just export it as enabled.
+	return True
+
 def FindNearestNormalTableIndex(nrm):
 	bestindex = 0
 	bestdp = -1
@@ -246,8 +263,6 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 			m = bpy.data.materials.new(n)
 			mesh.materials.append(m)
 			m.use_nodes = True
-			m.blend_method = 'CLIP' if (f & 1) else 'OPAQUE'
-			m.alpha_threshold = 0.94
 			mats.append(m)
 			
 			bsdf = FindPrincipledBsdfNode(m)
@@ -256,6 +271,16 @@ def ImportMesh3(input_filename, swap_yz_coords=True, self=None):
 			imgpath = dirname + "/" + s
 			if os.path.exists(imgpath):
 				imgnode.image = bpy.data.images.load(imgpath, check_existing=True)
+
+			if bpy.app.version < (4,2,0):
+				m.blend_method = 'CLIP' if (f & 1) else 'OPAQUE'
+				m.alpha_threshold = 0.94
+			elif f & 1:
+				alpha_compare_node = m.node_tree.nodes.new('ShaderNodeMath')
+				alpha_compare_node.operation = 'GREATER_THAN'
+				m.node_tree.links.new(imgnode.outputs['Alpha'], alpha_compare_node.inputs[0])
+				m.node_tree.links.new(alpha_compare_node.outputs[0], bsdf.inputs['Alpha'])
+				alpha_compare_node.inputs[1].default_value = 0.94
 
 		dbg("Texture coordinates")
 		nuvlist, = readpack(infile, "I")
@@ -405,10 +430,8 @@ def ExportMesh3(obj, output_filename, apply_modifiers=False, swap_yz_coords=True
 		exported_materials = list(set(obj.material_slots[p.material_index].material for p in mesh.polygons))
 		writepack(outfile, "H", len(exported_materials))
 		for m in exported_materials:
-			if m != None and m.blend_method != 'OPAQUE':
-				writepack(outfile, "B", 1)
-			else:
-				writepack(outfile, "B", 0)
+			alpha_test_enabled = m != None and IsAlphaTestEnabled(m)
+			writepack(outfile, "B", 1 if alpha_test_enabled else 0)
 			imgname = "Gold.tga"
 			try:
 				bsdf = FindPrincipledBsdfNode(m)
